@@ -16,3 +16,22 @@ export async function createTrack(name, duration_ms) {
 
   return rows[0];
 }
+
+export async function getTracks() {
+  const sql = `
+    SELECT * FROM tracks
+  `;
+  const { rows } = await db.query(sql);
+
+  return rows;
+}
+
+export async function getTrackById(id) {
+  const sql = `
+    SELECT * FROM tracks
+    WHERE id = $1;
+  `;
+  const { rows } = await db.query(sql, [id]);
+
+  return rows[0];
+}
