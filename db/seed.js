@@ -21,16 +21,16 @@ async function seed() {
   // no need to check for duplicate track names - tracks can have the same name
   for (let i = 0; i < 20; i++) {
     const name = faker.music.songName();
-    const duration_ms = faker.number.int({ min: 60000, max: 300000 });
+    const durationMs = faker.number.int({ min: 60000, max: 300000 });
 
-    await createTrack(name, duration_ms);
+    await createTrack(name, durationMs);
   }
 
   // create 15 entries in the playlists_tracks table
   for (let i = 0; i < 15; i++) {
-    const playlist_id = Math.floor(Math.random() * 10) + 1;
-    const track_id = Math.floor(Math.random() * 20) + 1;
+    const playlistId = Math.floor(Math.random() * 10) + 1;
+    const trackId = Math.floor(Math.random() * 20) + 1;
 
-    await createPlaylistTrack(playlist_id, track_id);
+    await createPlaylistTrack(playlistId, trackId);
   }
 }

@@ -1,6 +1,6 @@
 import db from "#db/client";
 
-export async function createTrack(name, duration_ms) {
+export async function createTrack(name, durationMs) {
   const sql = `
     INSERT INTO tracks(
       name,
@@ -12,7 +12,7 @@ export async function createTrack(name, duration_ms) {
     )
     RETURNING *;
   `;
-  const { rows } = await db.query(sql, [name, duration_ms]);
+  const { rows } = await db.query(sql, [name, durationMs]);
 
   return rows[0];
 }
@@ -34,4 +34,20 @@ export async function getTrackById(id) {
   const { rows } = await db.query(sql, [id]);
 
   return rows[0];
+}
+
+export async function getTracksByPlaylistId(id) {
+  const sql = `
+    SELECT
+      tracks.name
+    FROM
+      playlists_tracks
+    JOIN tracks
+        ON playlists_tracks.track_id = tracks.id
+    WHERE
+      playlists_tracks.playlist_id = $1;
+  `;
+  const { rows } = await db.query(sql, [id]);
+
+  return rows;
 }

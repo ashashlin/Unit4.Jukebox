@@ -10,6 +10,14 @@ app.use("/playlists", playlistsRouter);
 app.use("/tracks", tracksRouter);
 
 app.use((err, req, res, next) => {
+  if (err.code === "23505") {
+    return res.status(409).send("Error: track is already in this playlist.");
+  }
+
+  next(err);
+});
+
+app.use((err, req, res, next) => {
   console.error(err);
   res.status(500).send("Sorry! Something went wrong.");
 });
