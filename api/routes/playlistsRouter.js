@@ -5,10 +5,7 @@ import {
   getPlaylists,
 } from "#db/queries/playlists";
 import { getTracksByPlaylistId, getTrackById } from "#db/queries/tracks";
-import {
-  createPlaylistTrack,
-  getPlaylistTrackDetails,
-} from "#db/queries/playlists_tracks";
+import { createPlaylistTrack } from "#db/queries/playlists_tracks";
 
 const playlistsRouter = express.Router();
 
@@ -41,9 +38,8 @@ playlistsRouter.post("/", async (req, res, next) => {
         );
     }
 
-    // need to always send a res to avoid the request hanging. we can choose to include a body or not
-    await createPlaylist(name, description);
-    res.sendStatus(201);
+    const newPlaylist = await createPlaylist(name, description);
+    res.status(201).send(newPlaylist);
   } catch (error) {
     next(error);
   }
@@ -139,14 +135,12 @@ playlistsRouter.post("/:id/tracks", async (req, res, next) => {
 
     if (!track) {
       return res
-        .status(404)
+        .status(400)
         .send(`Error: track with id ${trackId} does not exist.`);
     }
 
     // create playlist-track entry in the junction table
-    await createPlaylistTrack(id, trackId);
-
-    const playlistTrack = await getPlaylistTrackDetails(id, trackId);
+    const playlistTrack = await createPlaylistTrack(id, trackId);
     res.status(201).send(playlistTrack);
   } catch (error) {
     next(error);
