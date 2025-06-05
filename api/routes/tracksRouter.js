@@ -1,5 +1,5 @@
-import { getTracks } from "#db/queries/tracks";
 import express from "express";
+import { getTrackById, getTracks } from "#db/queries/tracks";
 
 const tracksRouter = express.Router();
 
@@ -16,11 +16,14 @@ tracksRouter.get("/:id", async (req, res, next) => {
   try {
     const id = Number(req.params.id);
 
-    const tracks = await getTracks();
-    const track = tracks.find((track) => track.id === id);
+    if (isNaN(id)) {
+      return res.status(400).send(`Error: track ID must be a number.`);
+    }
+
+    const track = await getTrackById(id);
 
     if (!track) {
-      return res.status(404).send(`Track with id ${id} does not exist.`);
+      return res.status(404).send(`Error: track with id ${id} does not exist.`);
     }
 
     res.status(200).send(track);
