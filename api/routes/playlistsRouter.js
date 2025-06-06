@@ -6,6 +6,9 @@ import {
 } from "#db/queries/playlists";
 import { getTracksByPlaylistId, getTrackById } from "#db/queries/tracks";
 import { createPlaylistTrack } from "#db/queries/playlists_tracks";
+import validateId from "#api/middleware/validateId";
+import validateDataExistence from "#api/middleware/validateDataExistence";
+import validateReqBody from "#api/middleware/validateReqBody";
 
 const playlistsRouter = express.Router();
 
@@ -18,16 +21,8 @@ playlistsRouter.get("/", async (req, res, next) => {
   }
 });
 
-playlistsRouter.post("/", async (req, res, next) => {
+playlistsRouter.post("/", validateReqBody, async (req, res, next) => {
   try {
-    if (!req.body || Object.keys(req.body).length === 0) {
-      return res
-        .status(400)
-        .send(
-          "Error: no request body provided. Please provide a request body with your request."
-        );
-    }
-
     const { name, description } = req.body;
 
     if (!name || !description) {
@@ -45,106 +40,68 @@ playlistsRouter.post("/", async (req, res, next) => {
   }
 });
 
-playlistsRouter.get("/:id", async (req, res, next) => {
-  try {
-    const id = Number(req.params.id);
+playlistsRouter.get(
+  "/:id",
+  validateId("id", "params", "Error: playlist ID must be a number."),
+  validateDataExistence(getPlaylistById, 404, "playlist"),
+  async (req, res, next) => {
+    try {
+      const id = req.id;
 
-    if (isNaN(id)) {
-      return res.status(400).send(`Error: playlist ID must be a number.`);
+      const { playlist } = req;
+      res.status(200).send(playlist);
+    } catch (error) {
+      next(error);
     }
-
-    const playlist = await getPlaylistById(id);
-
-    if (!playlist) {
-      return res
-        .status(404)
-        .send(`Error: playlist with id ${id} does not exist.`);
-    }
-
-    res.status(200).send(playlist);
-  } catch (error) {
-    next(error);
   }
-});
+);
 
-playlistsRouter.get("/:id/tracks", async (req, res, next) => {
-  try {
-    const id = Number(req.params.id);
+playlistsRouter.get(
+  "/:id/tracks",
+  validateId("id", "params", "Error: playlist ID must be a number."),
+  validateDataExistence(getPlaylistById, 404, "playlist"),
+  async (req, res, next) => {
+    try {
+      const id = req.id;
 
-    if (isNaN(id)) {
-      return res.status(400).send(`Error: playlist ID must be a number.`);
+      // now check the tracks in the specified playlist
+      const tracks = await getTracksByPlaylistId(id);
+
+      if (tracks.length === 0) {
+        return res.status(200).send("No tracks in this playlist.");
+      }
+
+      res.status(200).send(tracks);
+    } catch (error) {
+      next(error);
     }
-
-    // check if playlist with this id exists first
-    const playlist = await getPlaylistById(id);
-
-    if (!playlist) {
-      return res
-        .status(404)
-        .send(`Error: playlist with id ${id} does not exist.`);
-    }
-
-    // now check the tracks in the specified playlist
-    const tracks = await getTracksByPlaylistId(id);
-
-    if (tracks.length === 0) {
-      return res.status(200).send("No tracks in this playlist.");
-    }
-
-    res.status(200).send(tracks);
-  } catch (error) {
-    next(error);
   }
-});
+);
 
-playlistsRouter.post("/:id/tracks", async (req, res, next) => {
-  try {
-    const id = Number(req.params.id);
+playlistsRouter.post(
+  "/:id/tracks",
+  validateId("id", "params", "Error: playlist ID must be a number."),
+  validateDataExistence(getPlaylistById, 404, "playlist"),
+  validateReqBody,
+  validateId(
+    "trackId",
+    "body",
+    "Error: request body must include a trackId that's a number."
+  ),
+  validateDataExistence(getTrackById, 400, "track", "trackId"),
+  async (req, res, next) => {
+    try {
+      const id = req.id;
 
-    if (isNaN(id)) {
-      return res.status(400).send(`Error: playlist ID must be a number.`);
+      const { trackId } = req;
+
+      // create playlist-track entry in the junction table
+      const playlistTrack = await createPlaylistTrack(id, trackId);
+      res.status(201).send(playlistTrack);
+    } catch (error) {
+      next(error);
     }
-
-    // check if playlist with this id exists first
-    const playlist = await getPlaylistById(id);
-
-    if (!playlist) {
-      return res
-        .status(404)
-        .send(`Error: playlist with id ${id} does not exist.`);
-    }
-
-    // now check if a request body is included
-    if (!req.body || Object.keys(req.body).length === 0) {
-      return res
-        .status(400)
-        .send(
-          "Error: no request body provided. Please provide a request body with your request."
-        );
-    }
-
-    const trackId = Number(req.body.trackId);
-
-    if (isNaN(trackId)) {
-      return res
-        .status(400)
-        .send(`Error: request body must include a trackId that's a number.`);
-    }
-
-    const track = await getTrackById(trackId);
-
-    if (!track) {
-      return res
-        .status(400)
-        .send(`Error: track with id ${trackId} does not exist.`);
-    }
-
-    // create playlist-track entry in the junction table
-    const playlistTrack = await createPlaylistTrack(id, trackId);
-    res.status(201).send(playlistTrack);
-  } catch (error) {
-    next(error);
   }
-});
+);
 
 export default playlistsRouter;

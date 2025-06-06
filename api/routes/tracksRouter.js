@@ -1,5 +1,7 @@
 import express from "express";
 import { getTrackById, getTracks } from "#db/queries/tracks";
+import validateId from "#api/middleware/validateId";
+import validateDataExistence from "#api/middleware/validateDataExistence";
 
 const tracksRouter = express.Router();
 
@@ -12,24 +14,21 @@ tracksRouter.get("/", async (req, res, next) => {
   }
 });
 
-tracksRouter.get("/:id", async (req, res, next) => {
-  try {
-    const id = Number(req.params.id);
+tracksRouter.get(
+  "/:id",
+  validateId("id", "params", "Error: track ID must be a number."),
+  validateDataExistence(getTrackById, 404, "track"),
+  async (req, res, next) => {
+    try {
+      // set the custom key value pair on the req object in the middleware, so we can directly access it here
+      const id = req.id;
 
-    if (isNaN(id)) {
-      return res.status(400).send(`Error: track ID must be a number.`);
+      const { track } = req;
+      res.status(200).send(track);
+    } catch (error) {
+      next(error);
     }
-
-    const track = await getTrackById(id);
-
-    if (!track) {
-      return res.status(404).send(`Error: track with id ${id} does not exist.`);
-    }
-
-    res.status(200).send(track);
-  } catch (error) {
-    next(error);
   }
-});
+);
 
 export default tracksRouter;
